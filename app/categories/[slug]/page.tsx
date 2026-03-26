@@ -4,6 +4,37 @@ import { PromptCard } from '@/components/prompts/PromptCard';
 import { Prompt } from '@/types';
 import Link from 'next/link';
 import { ArrowLeft, BookOpen } from 'lucide-react';
+import type { Metadata } from 'next';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://promptvault.com';
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const supabase = createClient();
+  const { data: category } = await supabase
+    .from('categories')
+    .select('name, description')
+    .eq('slug', params.slug)
+    .single();
+
+  if (!category) {
+    return { title: 'Category Not Found — PromptVault' };
+  }
+
+  const title = `${category.name} Prompts — PromptVault`;
+  const description = category.description
+    || `Browse AI prompts in the ${category.name} category on PromptVault.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `${baseUrl}/categories/${params.slug}`,
+    },
+  };
+}
 
 export default async function CategoryPage({ params }: { params: { slug: string } }) {
   const supabase = createClient();

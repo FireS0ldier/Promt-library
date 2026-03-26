@@ -1,5 +1,16 @@
 import { PromptMasterClient } from '@/components/prompts/PromptMasterClient';
 import { Zap, Target, Layers, Star } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Prompt Master — AI Prompt Builder | PromptVault',
+  description: 'Build highly optimized AI prompts using proven frameworks like RISEN, CRISPE, COAT, and RTF. Structure your prompts for maximum effectiveness.',
+  openGraph: {
+    title: 'Prompt Master — AI Prompt Builder',
+    description: 'Build optimized AI prompts using proven frameworks like RISEN, CRISPE, COAT, and RTF.',
+    type: 'website',
+  },
+};
 
 export default function PromptMasterPage() {
   return (
