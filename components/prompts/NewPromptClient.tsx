@@ -17,17 +17,18 @@ interface Props {
   userId: string;
   defaultImport: boolean;
   defaultType?: PromptType;
+  defaultContent?: string;
 }
 
 const SKILL_MODELS: AIModel[] = ['claude', 'openclaw'];
 const GENERAL_MODELS: AIModel[] = ['claude', 'chatgpt', 'gemini', 'grok', 'openclaw', 'other'];
 
-export function NewPromptClient({ categories, userId, defaultImport, defaultType }: Props) {
+export function NewPromptClient({ categories, userId, defaultImport, defaultType, defaultContent }: Props) {
   const [type, setType] = useState<PromptType>(defaultType || 'skill');
   const [tab, setTab] = useState<'manual' | 'github'>(defaultImport ? 'github' : 'manual');
 
   const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [content, setContent] = useState(defaultContent || '');
   const [description, setDescription] = useState('');
   const [aiModel, setAiModel] = useState<AIModel>('claude');
   const [categoryId, setCategoryId] = useState('');
