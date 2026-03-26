@@ -56,6 +56,13 @@ export function Navbar({ user, profile }: NavbarProps) {
       activeMatch: '/categories',
     },
     {
+      href: '/search',
+      label: 'Search',
+      icon: Search,
+      primary: false,
+      activeMatch: '/search',
+    },
+    {
       href: '/prompt-master',
       label: 'Prompt Master',
       icon: Zap,
@@ -119,7 +126,7 @@ export function Navbar({ user, profile }: NavbarProps) {
           <div className="flex items-center gap-2">
             {/* Search shortcut */}
             <Link
-              href="/skills"
+              href="/search"
               className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <Search className="w-4 h-4" />
@@ -255,6 +262,11 @@ export function Navbar({ user, profile }: NavbarProps) {
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
             onClick={() => setMobileOpen(false)}>
             Categories
+          </Link>
+          <Link href="/search"
+            className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
+            onClick={() => setMobileOpen(false)}>
+            <Search className="w-4 h-4" /> Search
           </Link>
           <Link href="/prompt-master"
             className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-accent transition-colors"
