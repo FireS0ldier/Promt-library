@@ -1,5 +1,7 @@
 export type AIModel = 'claude' | 'chatgpt' | 'gemini' | 'grok' | 'openclaw' | 'other';
 
+export type PromptType = 'skill' | 'prompt';
+
 export type PromptStatus = 'pending' | 'approved' | 'rejected' | 'official';
 
 export type VerificationStatus = 'pending' | 'running' | 'passed' | 'failed' | 'warning';
@@ -32,6 +34,7 @@ export interface Prompt {
   author_id: string;
   category_id: string | null;
   ai_model: AIModel;
+  type: PromptType;
   status: PromptStatus;
   language: string;
   verification_score: number;
@@ -112,6 +115,7 @@ export interface PaginationParams {
 export interface PromptFilters {
   category?: string;
   ai_model?: AIModel;
+  type?: PromptType;
   status?: PromptStatus;
   search?: string;
   language?: string;

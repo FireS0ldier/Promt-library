@@ -1,8 +1,7 @@
-import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { PromptCard } from '@/components/prompts/PromptCard';
-import { Prompt, Category, AIModel } from '@/types';
-import { Search, SlidersHorizontal, BookOpen } from 'lucide-react';
+import { Prompt, Category } from '@/types';
+import { Search, SlidersHorizontal, BookOpen, Cpu } from 'lucide-react';
 import Link from 'next/link';
 
 interface SearchParams {
@@ -11,8 +10,12 @@ interface SearchParams {
   model?: string;
   sort?: string;
   page?: string;
-  lang?: string;
 }
+
+export const metadata = {
+  title: 'General Prompts — PromptVault',
+  description: 'Browse general AI prompts that work across ChatGPT, Claude, Gemini, Grok, and more.',
+};
 
 export default async function PromptsPage({
   searchParams,
@@ -28,7 +31,8 @@ export default async function PromptsPage({
   let query = supabase
     .from('prompts')
     .select('*, author:profiles(*), category:categories(*)', { count: 'exact' })
-    .in('status', ['approved', 'official']);
+    .in('status', ['approved', 'official'])
+    .eq('type', 'prompt'); // only general prompts here
 
   if (searchParams.q) {
     query = query.textSearch('title', searchParams.q, { type: 'websearch' });
@@ -39,66 +43,80 @@ export default async function PromptsPage({
   if (searchParams.model) {
     query = query.eq('ai_model', searchParams.model);
   }
-  if (searchParams.lang) {
-    query = query.eq('language', searchParams.lang);
-  }
 
   const sortMap: Record<string, { column: string; ascending: boolean }> = {
-    newest: { column: 'created_at', ascending: false },
-    oldest: { column: 'created_at', ascending: true },
-    most_liked: { column: 'like_count', ascending: false },
-    most_viewed: { column: 'view_count', ascending: false },
-    top_rated: { column: 'verification_score', ascending: false },
+    newest:      { column: 'created_at',         ascending: false },
+    oldest:      { column: 'created_at',         ascending: true  },
+    most_liked:  { column: 'like_count',         ascending: false },
+    most_viewed: { column: 'view_count',         ascending: false },
+    top_rated:   { column: 'verification_score', ascending: false },
   };
-
   const sort = sortMap[searchParams.sort || 'newest'];
-  query = query.order(sort.column, { ascending: sort.ascending });
-  query = query.range(offset, offset + limit - 1);
+  query = query.order(sort.column, { ascending: sort.ascending }).range(offset, offset + limit - 1);
 
   const [{ data: prompts, count }, { data: categories }] = await Promise.all([
     query,
-    supabase.from('categories').select('*').order('name'),
+    supabase
+      .from('categories')
+      .select('*')
+      .or('ai_model.is.null,ai_model.not.in.(claude,openclaw)')
+      .order('name'),
   ]);
 
   const totalPages = Math.ceil((count || 0) / limit);
 
   const models = [
-    { value: 'claude', label: 'Claude' },
-    { value: 'chatgpt', label: 'ChatGPT' },
-    { value: 'gemini', label: 'Gemini' },
-    { value: 'grok', label: 'Grok' },
-    { value: 'openclaw', label: 'OpenClaw' },
+    { value: 'claude',   label: '🤖 Claude'   },
+    { value: 'chatgpt',  label: '💬 ChatGPT'  },
+    { value: 'gemini',   label: '✨ Gemini'   },
+    { value: 'grok',     label: '⚡ Grok'     },
+    { value: 'openclaw', label: '🦾 OpenClaw' },
   ];
 
   const sorts = [
-    { value: 'newest', label: 'Newest' },
-    { value: 'most_liked', label: 'Most Liked' },
+    { value: 'newest',      label: 'Newest'      },
+    { value: 'most_liked',  label: 'Most Liked'  },
     { value: 'most_viewed', label: 'Most Viewed' },
-    { value: 'top_rated', label: 'Top Rated' },
+    { value: 'top_rated',   label: 'Top Rated'   },
   ];
 
   function buildUrl(params: Partial<SearchParams>) {
     const merged = { ...searchParams, ...params };
     const urlParams = new URLSearchParams();
-    Object.entries(merged).forEach(([k, v]) => {
-      if (v) urlParams.set(k, v);
-    });
+    Object.entries(merged).forEach(([k, v]) => { if (v) urlParams.set(k, v); });
     return `/prompts?${urlParams.toString()}`;
   }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Browse Prompts</h1>
+      <div className="mb-6">
+        {/* Cross-link to Skills */}
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-900/30">
+          <Cpu className="w-5 h-5 text-orange-500 shrink-0" />
+          <p className="text-sm text-orange-800 dark:text-orange-300">
+            Looking for <strong>Claude Skills</strong>? Those are in a dedicated section.
+          </p>
+          <Link
+            href="/skills"
+            className="ml-auto shrink-0 px-3 py-1 rounded-lg bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-medium hover:opacity-90 transition-opacity"
+          >
+            Browse Skills →
+          </Link>
+        </div>
+
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground mb-1">
+          <BookOpen className="w-4 h-4" />
+          General Prompts
+        </div>
+        <h1 className="text-3xl font-bold mb-1">Browse Prompts</h1>
         <p className="text-muted-foreground">
-          {count?.toLocaleString() || 0} verified prompts across all AI models
+          {count?.toLocaleString() || 0} prompts — works with any AI model
         </p>
       </div>
 
-      {/* Search + Filters */}
+      {/* Search + model filters */}
       <div className="flex flex-col md:flex-row gap-4 mb-8">
-        {/* Search */}
         <form action="/prompts" method="get" className="flex-1">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -109,13 +127,12 @@ export default async function PromptsPage({
               className="w-full pl-10 pr-4 py-2.5 rounded-lg border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             {searchParams.category && <input type="hidden" name="category" value={searchParams.category} />}
-            {searchParams.model && <input type="hidden" name="model" value={searchParams.model} />}
-            {searchParams.sort && <input type="hidden" name="sort" value={searchParams.sort} />}
+            {searchParams.model   && <input type="hidden" name="model"    value={searchParams.model}    />}
+            {searchParams.sort    && <input type="hidden" name="sort"     value={searchParams.sort}     />}
           </div>
         </form>
 
-        {/* Model Filter */}
-        <div className="flex flex-wrap gap-2 items-center">
+        <div className="flex items-center gap-2 flex-wrap">
           <SlidersHorizontal className="w-4 h-4 text-muted-foreground" />
           {models.map(m => (
             <Link
@@ -124,7 +141,7 @@ export default async function PromptsPage({
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                 searchParams.model === m.value
                   ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background hover:bg-accent'
+                  : 'hover:bg-accent'
               }`}
             >
               {m.label}
@@ -134,42 +151,50 @@ export default async function PromptsPage({
       </div>
 
       <div className="flex gap-8">
-        {/* Sidebar: Categories */}
+        {/* Sidebar */}
         <aside className="hidden lg:block w-56 shrink-0">
-          <div className="sticky top-20">
-            <h3 className="font-semibold text-sm mb-3 text-muted-foreground uppercase tracking-wide">Categories</h3>
-            <nav className="space-y-0.5">
-              <Link
-                href={buildUrl({ category: undefined, page: '1' })}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  !searchParams.category ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent text-muted-foreground'
-                }`}
-              >
-                All Categories
-              </Link>
-              {categories?.map((cat: Category) => (
+          <div className="sticky top-20 space-y-6">
+            <div>
+              <h3 className="font-semibold text-xs mb-3 text-muted-foreground uppercase tracking-wide">Categories</h3>
+              <nav className="space-y-0.5">
                 <Link
-                  key={cat.id}
-                  href={buildUrl({ category: cat.id, page: '1' })}
+                  href={buildUrl({ category: undefined, page: '1' })}
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    searchParams.category === cat.id ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent text-muted-foreground'
+                    !searchParams.category
+                      ? 'bg-primary/10 text-primary font-medium'
+                      : 'hover:bg-accent text-muted-foreground'
                   }`}
                 >
-                  <span>{cat.icon}</span>
-                  <span className="line-clamp-1">{cat.name}</span>
+                  All Categories
                 </Link>
-              ))}
-            </nav>
+                {categories?.map((cat: Category) => (
+                  <Link
+                    key={cat.id}
+                    href={buildUrl({ category: cat.id, page: '1' })}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                      searchParams.category === cat.id
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-accent text-muted-foreground'
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span className="line-clamp-1">{cat.name}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
 
-            <div className="mt-6">
-              <h3 className="font-semibold text-sm mb-3 text-muted-foreground uppercase tracking-wide">Sort By</h3>
+            <div>
+              <h3 className="font-semibold text-xs mb-3 text-muted-foreground uppercase tracking-wide">Sort By</h3>
               <nav className="space-y-0.5">
                 {sorts.map(s => (
                   <Link
                     key={s.value}
                     href={buildUrl({ sort: s.value, page: '1' })}
                     className={`flex items-center px-3 py-2 rounded-lg text-sm transition-colors ${
-                      (searchParams.sort || 'newest') === s.value ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent text-muted-foreground'
+                      (searchParams.sort || 'newest') === s.value
+                        ? 'bg-primary/10 text-primary font-medium'
+                        : 'hover:bg-accent text-muted-foreground'
                     }`}
                   >
                     {s.label}
@@ -180,7 +205,7 @@ export default async function PromptsPage({
           </div>
         </aside>
 
-        {/* Main Content */}
+        {/* Grid */}
         <div className="flex-1 min-w-0">
           {prompts && prompts.length > 0 ? (
             <>
@@ -190,19 +215,16 @@ export default async function PromptsPage({
                 ))}
               </div>
 
-              {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex justify-center items-center gap-2 mt-10">
                   {page > 1 && (
-                    <Link href={buildUrl({ page: String(page - 1) })} className="px-4 py-2 rounded-lg border hover:bg-accent text-sm transition-colors">
+                    <Link href={buildUrl({ page: String(page - 1) })} className="px-4 py-2 rounded-lg border hover:bg-accent text-sm">
                       Previous
                     </Link>
                   )}
-                  <span className="text-sm text-muted-foreground px-3">
-                    Page {page} of {totalPages}
-                  </span>
+                  <span className="text-sm text-muted-foreground px-3">Page {page} of {totalPages}</span>
                   {page < totalPages && (
-                    <Link href={buildUrl({ page: String(page + 1) })} className="px-4 py-2 rounded-lg border hover:bg-accent text-sm transition-colors">
+                    <Link href={buildUrl({ page: String(page + 1) })} className="px-4 py-2 rounded-lg border hover:bg-accent text-sm">
                       Next
                     </Link>
                   )}
@@ -210,13 +232,18 @@ export default async function PromptsPage({
               )}
             </>
           ) : (
-            <div className="text-center py-20 text-muted-foreground">
+            <div className="text-center py-20 text-muted-foreground border rounded-xl bg-muted/20">
               <BookOpen className="w-12 h-12 mx-auto mb-4 opacity-30" />
               <p className="text-lg font-medium">No prompts found</p>
               <p className="text-sm mt-1">
-                {searchParams.q ? `No results for "${searchParams.q}"` : 'Be the first to submit a prompt in this category!'}
+                {searchParams.q
+                  ? `No results for "${searchParams.q}"`
+                  : 'Be the first to submit a prompt in this category!'}
               </p>
-              <Link href="/prompts/new" className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium">
+              <Link
+                href="/prompts/new?type=prompt"
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium"
+              >
                 Submit a Prompt
               </Link>
             </div>
