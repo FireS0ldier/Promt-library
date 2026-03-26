@@ -30,7 +30,6 @@ export function PromptDetailClient({ prompt, user, isAuthor, versions, comments,
   const [localComments, setLocalComments] = useState<Comment[]>(comments);
   const [suggestionText, setSuggestionText] = useState('');
   const [suggestionExplanation, setSuggestionExplanation] = useState('');
-  const [translateUrl, setTranslateUrl] = useState<string | null>(null);
   const supabase = createClient();
 
   const handleCopy = async () => {
@@ -93,7 +92,6 @@ export function PromptDetailClient({ prompt, user, isAuthor, versions, comments,
 
   const handleTranslate = () => {
     const url = `https://translate.google.com/?sl=auto&tl=en&text=${encodeURIComponent(prompt.content)}&op=translate`;
-    setTranslateUrl(url);
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -127,16 +125,6 @@ export function PromptDetailClient({ prompt, user, isAuthor, versions, comments,
           {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
           {copied ? 'Copied!' : 'Copy Prompt'}
         </button>
-
-        {prompt.language !== 'en' && (
-          <button
-            onClick={handleTranslate}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border hover:bg-accent transition-colors"
-          >
-            <Globe className="w-4 h-4" />
-            Translate
-          </button>
-        )}
 
         <button
           onClick={handleTranslate}

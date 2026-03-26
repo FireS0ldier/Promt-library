@@ -6,7 +6,7 @@ import { PromptType } from '@/types';
 export default async function NewPromptPage({
   searchParams,
 }: {
-  searchParams: { import?: string; type?: string };
+  searchParams: { import?: string; type?: string; content?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -40,6 +40,7 @@ export default async function NewPromptPage({
         userId={user.id}
         defaultImport={searchParams.import === 'github'}
         defaultType={defaultType}
+        defaultContent={searchParams.content ? decodeURIComponent(searchParams.content) : undefined}
       />
     </div>
   );
