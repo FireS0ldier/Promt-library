@@ -6,6 +6,37 @@ import { Prompt, PromptVersion, Comment, Suggestion } from '@/types';
 import { formatDate, AI_MODEL_LABELS, AI_MODEL_COLORS } from '@/lib/utils';
 import { Shield, GitBranch, Calendar, Eye, Heart, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Metadata } from 'next';
+
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://promptvault.com';
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const supabase = createClient();
+  const { data: prompt } = await supabase
+    .from('prompts')
+    .select('title, description, ai_model, category:categories(name)')
+    .eq('id', params.id)
+    .single();
+
+  if (!prompt) {
+    return { title: 'Prompt Not Found — PromptVault' };
+  }
+
+  const title = `${prompt.title} — PromptVault`;
+  const description = prompt.description
+    || `AI prompt for ${AI_MODEL_LABELS[prompt.ai_model] || prompt.ai_model}. Browse and use this prompt on PromptVault.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'article',
+      url: `${baseUrl}/prompts/${params.id}`,
+    },
+  };
+}
 
 export default async function PromptDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();

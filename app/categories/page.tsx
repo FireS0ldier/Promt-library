@@ -2,6 +2,17 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { Category } from '@/types';
 import { BookOpen } from 'lucide-react';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Categories — PromptVault',
+  description: 'Browse AI prompts by category and use case. Find prompts for coding, writing, marketing, education, and more.',
+  openGraph: {
+    title: 'Prompt Categories — PromptVault',
+    description: 'Browse AI prompts by category and use case.',
+    type: 'website',
+  },
+};
 
 export default async function CategoriesPage() {
   const supabase = createClient();

@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 import { createClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://promptvault.com'),
   title: 'PromptVault — The World\'s Largest AI Prompt Library',
   description:
     'Discover, share, and master AI prompts for Claude, ChatGPT, Gemini, Grok, and more. Community-curated, expert-verified prompt library.',
