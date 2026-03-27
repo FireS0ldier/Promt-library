@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Github, Search, Loader2, FileText, ArrowRight, CheckCircle2, XCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Github, Search, Loader2, FileText, ArrowRight, CheckCircle2, XCircle, ChevronDown, ChevronUp, AlertTriangle, ExternalLink } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 import toast from 'react-hot-toast';
 
 interface ImportedFile {
@@ -19,12 +20,32 @@ interface SelectedFile extends ImportedFile {
   expanded: boolean;
 }
 
+interface ExistingImport {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+}
+
 export function GitHubImportClient() {
   const router = useRouter();
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<SelectedFile[]>([]);
   const [done, setDone] = useState(false);
+  const [existingImports, setExistingImports] = useState<ExistingImport[]>([]);
+
+  const checkExisting = async (repoUrl: string) => {
+    const supabase = createClient();
+    // Normalize URL: strip trailing slash and .git
+    const normalized = repoUrl.trim().replace(/\.git$/, '').replace(/\/$/, '');
+    const { data } = await supabase
+      .from('prompts')
+      .select('id, title, status, created_at')
+      .ilike('github_url', `${normalized}%`)
+      .order('created_at', { ascending: false });
+    return (data || []) as ExistingImport[];
+  };
 
   const handleImport = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,13 +53,21 @@ export function GitHubImportClient() {
     setLoading(true);
     setFiles([]);
     setDone(false);
+    setExistingImports([]);
 
     try {
-      const res = await fetch('/api/github/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
-      });
+      // Check for existing imports in parallel with the GitHub scan
+      const [existing, res] = await Promise.all([
+        checkExisting(url),
+        fetch('/api/github/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url.trim() }),
+        }),
+      ]);
+
+      setExistingImports(existing);
+
       const data = await res.json();
 
       if (!res.ok) {
@@ -141,6 +170,46 @@ export function GitHubImportClient() {
           Scans for <code className="bg-muted px-1 rounded">.md</code>, <code className="bg-muted px-1 rounded">.txt</code>, and <code className="bg-muted px-1 rounded">.prompt</code> files in the repository root.
         </p>
       </form>
+
+      {/* Already imported warning */}
+      {existingImports.length > 0 && (
+        <div className="bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="font-medium text-yellow-800 dark:text-yellow-300 text-sm">
+                This repo was already imported {existingImports.length} time{existingImports.length > 1 ? 's' : ''}
+              </p>
+              <ul className="mt-2 space-y-1">
+                {existingImports.map((imp) => (
+                  <li key={imp.id} className="flex items-center gap-2 text-xs text-yellow-700 dark:text-yellow-400">
+                    <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                      imp.status === 'official' ? 'bg-yellow-200 text-yellow-800' :
+                      imp.status === 'approved' ? 'bg-green-100 text-green-700' :
+                      imp.status === 'pending' ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {imp.status}
+                    </span>
+                    <span>{imp.title}</span>
+                    <a
+                      href={`/prompts/${imp.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-auto hover:underline flex items-center gap-1"
+                    >
+                      View <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
+                You can still submit again if this is a new version or different skill.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       {files.length > 0 && (
