@@ -18,16 +18,18 @@ interface Props {
   defaultImport: boolean;
   defaultType?: PromptType;
   defaultContent?: string;
+  defaultTitle?: string;
+  defaultGithubUrl?: string;
 }
 
 const SKILL_MODELS: AIModel[] = ['claude', 'openclaw'];
 const GENERAL_MODELS: AIModel[] = ['claude', 'chatgpt', 'gemini', 'grok', 'openclaw', 'other'];
 
-export function NewPromptClient({ categories, userId, defaultImport, defaultType, defaultContent }: Props) {
+export function NewPromptClient({ categories, userId, defaultImport, defaultType, defaultContent, defaultTitle, defaultGithubUrl }: Props) {
   const [type, setType] = useState<PromptType>(defaultType || 'skill');
   const [tab, setTab] = useState<'manual' | 'github'>(defaultImport ? 'github' : 'manual');
 
-  const [title, setTitle] = useState('');
+  const [title, setTitle] = useState(defaultTitle || '');
   const [content, setContent] = useState(defaultContent || '');
   const [description, setDescription] = useState('');
   const [aiModel, setAiModel] = useState<AIModel>('claude');
@@ -35,7 +37,7 @@ export function NewPromptClient({ categories, userId, defaultImport, defaultType
   const [tags, setTags] = useState('');
   const [language, setLanguage] = useState('en');
 
-  const [githubUrl, setGithubUrl] = useState('');
+  const [githubUrl, setGithubUrl] = useState(defaultGithubUrl || '');
   const [githubToken, setGithubToken] = useState('');
   const [loadingGithub, setLoadingGithub] = useState(false);
   const [githubFiles, setGithubFiles] = useState<Array<{ name: string; content: string; path: string }>>([]);
